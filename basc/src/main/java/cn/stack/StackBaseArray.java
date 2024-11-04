@@ -5,9 +5,9 @@ package cn.stack;
  * Author: PeiJiaNi
  */
 public class StackBaseArray {
-    private int[] items;    // 数组
+    private final int[] items;    // 数组
     private int count;      // 栈中元素个数
-    private int length;   // 栈空间大小
+    private final int length;   // 栈空间大小
 
     public StackBaseArray(int capactiy) {
         this.items = new int[capactiy];

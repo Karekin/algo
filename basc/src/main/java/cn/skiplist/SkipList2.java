@@ -16,8 +16,8 @@ public class SkipList2 {
     /**
      * 带头链表
      */
-    private Node head = new Node(MAX_LEVEL);
-    private Random r = new Random();
+    private final Node head = new Node(MAX_LEVEL);
+    private final Random r = new Random();
 
     public Node find(int value) {
         Node p = head;
@@ -49,7 +49,7 @@ public class SkipList2 {
         }
         Node newNode = new Node(level);
         newNode.data = value;
-        Node update[] = new Node[level];
+        Node[] update = new Node[level];
         for (int i = 0; i < level; ++i) {
             update[i] = head;
         }
@@ -127,7 +127,7 @@ public class SkipList2 {
         // 表示从最大层到低层，都要有节点数据
         newNode.maxLevel = level;
         // 记录要更新的层数，表示新节点要更新到哪几层
-        Node update[] = new Node[level];
+        Node[] update = new Node[level];
         for (int i = 0; i < level; ++i) {
             update[i] = head;
         }
@@ -231,7 +231,7 @@ public class SkipList2 {
          * 表示当前节点位置的下一个节点所有层的数据，从上层切换到下层，就是数组下标-1，
          * forwards[3]表示当前节点在第三层的下一个节点。
          */
-        private Node forwards[];
+        private final Node[] forwards;
 
         /**
          * 这个值其实可以不用，看优化insert()
@@ -244,13 +244,12 @@ public class SkipList2 {
 
         @Override
         public String toString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append("{ data: ");
-            builder.append(data);
-            builder.append("; levels: ");
-            builder.append(maxLevel);
-            builder.append(" }");
-            return builder.toString();
+            String builder = "{ data: " +
+                    data +
+                    "; levels: " +
+                    maxLevel +
+                    " }";
+            return builder;
         }
     }
 

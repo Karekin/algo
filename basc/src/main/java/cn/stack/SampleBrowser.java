@@ -27,8 +27,8 @@ public class SampleBrowser {
     }
 
     private String currentPage;
-    private LinkedListBasedStack backStack;
-    private LinkedListBasedStack forwardStack;
+    private final LinkedListBasedStack backStack;
+    private final LinkedListBasedStack forwardStack;
 
     public SampleBrowser() {
         this.backStack = new LinkedListBasedStack();

@@ -5,7 +5,7 @@ package cn.queue;
  */
 public class DynamicArrayQueue {
   // 数组：items，数组大小：n
-  private String[] items;
+  private final String[] items;
   private int n = 0;
   // head表示队头下标，tail表示队尾下标
   private int head = 0;

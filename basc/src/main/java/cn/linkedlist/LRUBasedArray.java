@@ -14,13 +14,13 @@ public class LRUBasedArray<T> {
 
     private static final int DEFAULT_CAPACITY = (1 << 3);
 
-    private int capacity;
+    private final int capacity;
 
     private int count;
 
-    private T[] value;
+    private final T[] value;
 
-    private Map<T, Integer> holder;
+    private final Map<T, Integer> holder;
 
     public LRUBasedArray() {
         this(DEFAULT_CAPACITY);

@@ -125,15 +125,11 @@ public class Sorts1 {
         int[] leftArr = new int[q - left + 2];
         int[] rightArr = new int[right - q + 1];
 
-        for (int i = 0; i <= q - left; i++) {
-            leftArr[i] = arr[left + i];
-        }
+        if (q - left + 1 >= 0) System.arraycopy(arr, left + 0, leftArr, 0, q - left + 1);
         // 第一个数组添加哨兵（最大值）
         leftArr[q - left + 1] = Integer.MAX_VALUE;
 
-        for (int i = 0; i < right - q; i++) {
-            rightArr[i] = arr[q + 1 + i];
-        }
+        if (right - q >= 0) System.arraycopy(arr, q + 1 + 0, rightArr, 0, right - q);
         // 第二个数组添加哨兵（最大值）
         rightArr[right - q] = Integer.MAX_VALUE;
 
@@ -171,9 +167,7 @@ public class Sorts1 {
         while (start <= end) {
             tmp[k++] = arr[start++];
         }
-        for (int l = 0; l <= right - left; l++) {
-            arr[l + left] = tmp[l];
-        }
+        if (right - left + 1 >= 0) System.arraycopy(tmp, 0, arr, 0 + left, right - left + 1);
 
     }
 

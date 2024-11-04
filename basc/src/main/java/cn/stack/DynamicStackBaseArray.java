@@ -11,7 +11,7 @@ import java.util.Iterator;
 public class DynamicStackBaseArray<T> implements Iterable<T> {
     private T[] items;   // 数组
     private int count;   // 栈中的元素个数
-    private int length;  // 栈空间大小
+    private final int length;  // 栈空间大小
 
     /**
      * 初始化栈
@@ -67,9 +67,7 @@ public class DynamicStackBaseArray<T> implements Iterable<T> {
      */
     private void resize(int size) {
         T[] newItems = (T[]) new Object[size];
-        for (int i = 0; i < count; i++) {
-            newItems[i] = this.items[i];
-        }
+        if (count >= 0) System.arraycopy(this.items, 0, newItems, 0, count);
         this.items = newItems;
     }
 

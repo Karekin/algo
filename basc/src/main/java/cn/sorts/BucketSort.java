@@ -68,9 +68,7 @@ public class BucketSort {
     private static void ensureCapacity(int[][] buckets, int bucketIndex) {
         int[] tempArr = buckets[bucketIndex];
         int[] newArr = new int[tempArr.length * 2];
-        for (int j = 0; j < tempArr.length; j++) {
-            newArr[j] = tempArr[j];
-        }
+        System.arraycopy(tempArr, 0, newArr, 0, tempArr.length);
         buckets[bucketIndex] = newArr;
     }
 

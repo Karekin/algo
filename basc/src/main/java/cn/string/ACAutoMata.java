@@ -9,7 +9,7 @@ import java.util.Objects;
  * @author wayne
  */
 public class ACAutoMata {
-    private ACNode root;
+    private final ACNode root;
 
     public ACAutoMata() {
         this.root = new ACNode("/");
@@ -19,7 +19,7 @@ public class ACAutoMata {
         ACNode node = this.root;
         int len = pattern.length();
         for (int i = 0; i < len; i++) {
-            String c = pattern.charAt(i) + "";
+            String c = String.valueOf(pattern.charAt(i));
             if(Objects.isNull(node.children.get(c))) {
                 node.children.put(c, new ACNode(c));
             }
@@ -70,7 +70,7 @@ public class ACAutoMata {
 
         int n = text.length();
         for(int i = 0; i < n; i++) {
-            String c = text.charAt(i) + "";
+            String c = String.valueOf(text.charAt(i));
             while(Objects.isNull(p.children.get(c)) && p != root){
                 p = p.fail;
             }
@@ -82,7 +82,7 @@ public class ACAutoMata {
 
             ACNode tmp = p;
             while ( tmp != root) {
-                if (tmp.isEndingChar == true) {
+                if (tmp.isEndingChar) {
                     System.out.println("Start from " + (i - p.length + 1));
                     return true;
                 }
@@ -104,8 +104,8 @@ public class ACAutoMata {
     }
 
     public class ACNode {
-        private String data;
-        private Map<String, ACNode> children;
+        private final String data;
+        private final Map<String, ACNode> children;
         private Boolean isEndingChar;
         private Integer length;
         private ACNode fail;

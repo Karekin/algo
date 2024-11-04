@@ -39,7 +39,7 @@ public class StackBasedOnLinkedList {
   }
 
   private static class Node {
-    private int data;
+    private final int data;
     private Node next;
 
     public Node(int data, Node next) {

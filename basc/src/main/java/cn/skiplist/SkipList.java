@@ -13,7 +13,7 @@ public class SkipList {
 
   private int levelCount = 1;
 
-  private Node head = new Node();  // 带头链表
+  private final Node head = new Node();  // 带头链表
 
   public Node find(int value) {
     Node p = head;
@@ -35,7 +35,7 @@ public class SkipList {
     Node newNode = new Node();
     newNode.data = value;
     newNode.maxLevel = level;
-    Node update[] = new Node[level];
+    Node[] update = new Node[level];
     for (int i = 0; i < level; ++i) {
       update[i] = head;
     }
@@ -108,19 +108,18 @@ public class SkipList {
 
   public class Node {
     private int data = -1;
-    private Node forwards[] = new Node[MAX_LEVEL];
+    private final Node[] forwards = new Node[MAX_LEVEL];
     private int maxLevel = 0;
 
     @Override
     public String toString() {
-      StringBuilder builder = new StringBuilder();
-      builder.append("{ data: ");
-      builder.append(data);
-      builder.append("; levels: ");
-      builder.append(maxLevel);
-      builder.append(" }");
+      String builder = "{ data: " +
+              data +
+              "; levels: " +
+              maxLevel +
+              " }";
 
-      return builder.toString();
+      return builder;
     }
   }
 

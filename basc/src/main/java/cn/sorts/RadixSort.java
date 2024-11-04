@@ -57,8 +57,6 @@ public class RadixSort {
             c[(arr[i] / exp) % 10]--;
         }
 
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = r[i];
-        }
+        System.arraycopy(r, 0, arr, 0, arr.length);
     }
 }

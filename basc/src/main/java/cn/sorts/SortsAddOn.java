@@ -95,6 +95,6 @@ public class SortsAddOn {
     for (int x : arr) {
       System.out.print(x + "\t");
     }
-    System.out.println("");
+    System.out.println();
   }
 }

@@ -69,15 +69,11 @@ public class MergeSort {
     int[] leftArr = new int[q - p + 2];
     int[] rightArr = new int[r - q + 1];
 
-    for (int i = 0; i <= q - p; i++) {
-      leftArr[i] = arr[p + i];
-    }
+      if (q - p + 1 >= 0) System.arraycopy(arr, p + 0, leftArr, 0, q - p + 1);
     // 第一个数组添加哨兵（最大值）
     leftArr[q - p + 1] = Integer.MAX_VALUE;
 
-    for (int i = 0; i < r - q; i++) {
-      rightArr[i] = arr[q + 1 + i];
-    }
+      if (r - q >= 0) System.arraycopy(arr, q + 1 + 0, rightArr, 0, r - q);
     // 第二个数组添加哨兵（最大值）
     rightArr[r-q] = Integer.MAX_VALUE;
 

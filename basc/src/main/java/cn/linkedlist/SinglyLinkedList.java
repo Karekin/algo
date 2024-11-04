@@ -292,7 +292,7 @@ public class SinglyLinkedList {
     }
 
     public static class Node {
-        private int data;
+        private final int data;
         private Node next;
 
         public Node(int data, Node next) {
@@ -315,7 +315,7 @@ public class SinglyLinkedList {
         //int data[] = {1,2,5};
         //int data[] = {1,2,2,1};
        // int data[] = {1,2,5,2,1};
-        int data[] = {1,2,5,3,1};
+        int[] data = {1,2,5,3,1};
 
         for(int i =0; i < data.length; i++){
             //link.insertToHead(data[i]);

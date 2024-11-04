@@ -45,7 +45,7 @@ public class QueueBasedOnLinkedList {
   }
 
   private static class Node {
-    private String data;
+    private final String data;
     private Node next;
 
     public Node(String data, Node next) {

@@ -145,9 +145,7 @@ public class GenericArray<T> {
     private void resize(int capacity) {
         T[] newData = (T[]) new Object[capacity];
 
-        for (int i = 0; i < size; i++) {
-            newData[i] = data[i];
-        }
+        if (size >= 0) System.arraycopy(data, 0, newData, 0, size);
         data = newData;
     }
 

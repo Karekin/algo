@@ -42,9 +42,7 @@ public class CountingSort {
     }
 
     // 将结果拷贝会a数组
-    for (int i = 0; i < n; ++i) {
-      a[i] = r[i];
-    }
+      System.arraycopy(r, 0, a, 0, n);
   }
 
 }

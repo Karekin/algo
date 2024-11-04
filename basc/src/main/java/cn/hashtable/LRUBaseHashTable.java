@@ -19,12 +19,12 @@ public class LRUBaseHashTable<K, V> {
     /**
      * 头结点
      */
-    private DNode<K, V> headNode;
+    private final DNode<K, V> headNode;
 
     /**
      * 尾节点
      */
-    private DNode<K, V> tailNode;
+    private final DNode<K, V> tailNode;
 
     /**
      * 链表长度
@@ -34,12 +34,12 @@ public class LRUBaseHashTable<K, V> {
     /**
      * 链表容量
      */
-    private Integer capacity;
+    private final Integer capacity;
 
     /**
      * 散列表存储key
      */
-    private HashMap<K, DNode<K, V>> table;
+    private final HashMap<K, DNode<K, V>> table;
 
     /**
      * 双向链表

@@ -18,7 +18,7 @@ public class LRUBaseLinkedList<T> {
     /**
      * 头结点
      */
-    private SNode<T> headNode;
+    private final SNode<T> headNode;
 
     /**
      * 链表长度
@@ -28,7 +28,7 @@ public class LRUBaseLinkedList<T> {
     /**
      * 链表容量
      */
-    private Integer capacity;
+    private final Integer capacity;
 
     public LRUBaseLinkedList() {
         this.headNode = new SNode<>();

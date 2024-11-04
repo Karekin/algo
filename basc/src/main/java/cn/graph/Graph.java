@@ -8,8 +8,8 @@ import java.util.Queue;
  * @date 2019-10-23 15:10
  */
 public class Graph {
-    private int v;
-    private LinkedList<Integer> adj[]; // 邻接表
+    private final int v;
+    private final LinkedList<Integer>[] adj; // 邻接表
 
     public Graph(int v) {
         this.v = v;
@@ -100,7 +100,7 @@ public class Graph {
     }
 
     private void recurDfs(int w, int t, boolean[] visited, int[] prev) {
-        if (found == true) return;
+        if (found) return;
         visited[w] = true;
         if (w == t) {
             found = true;

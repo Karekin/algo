@@ -9,9 +9,9 @@ package cn.array;
  */
 public class Array {
     //定义整型数据data保存数据
-    public int data[];
+    public int[] data;
     //定义数组长度
-    private int n;
+    private final int n;
     //定义中实际个数
     private int count;
 
