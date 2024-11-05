@@ -1,9 +1,6 @@
 package cn.heap;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import java.util.Comparator;
+import java.util.*;
 
 public class TopKFinder {
 
@@ -79,15 +76,35 @@ public class TopKFinder {
         return result;
     }
 
-    public static void main(String[] args) {
-        int[] nums = {3, 10, 5, 20, 7, 6, 15};
-        int k = 3;
+    /* 基于堆查找数组中最大的 k 个元素 */
+    public static Queue<Integer> topKHeap(int[] nums, int k) {
+        // 边界检查：若 k 大于等于数组长度，直接返回包含所有元素的小顶堆
+        if (k >= nums.length) {
+            Queue<Integer> heap = new PriorityQueue<>();
+            for (int num : nums) {
+                heap.offer(num);
+            }
+            return heap;
+        }
 
-        List<Integer> topK = findTopK(nums, k);
-        System.out.println("Top " + k + " elements: " + topK);
+        // 初始化容量为 k 的小顶堆
+        Queue<Integer> heap = new PriorityQueue<>(k);
 
-        List<Integer> lowK = findLowK(nums, k);
-        System.out.println("Low " + k + " elements: " + lowK);
+        // 将数组的前 k 个元素入堆
+        for (int i = 0; i < k; i++) {
+            heap.offer(nums[i]);
+        }
+
+        // 从第 k+1 个元素开始，保持堆的长度为 k
+        for (int i = k; i < nums.length; i++) {
+            int top = heap.peek();  // 提前存储堆顶元素
+            if (nums[i] > top) {
+                heap.poll();
+                heap.offer(nums[i]);
+            }
+        }
+
+        return heap;
     }
 }
 
