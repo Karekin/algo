@@ -1,4 +1,4 @@
-package cn.skiplist;
+package cn.iocoder.boot.skiplist;
 
 import java.util.Random;
 

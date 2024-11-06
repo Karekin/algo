@@ -1,4 +1,4 @@
-package cn.skiplist;
+package cn.iocoder.boot.skiplist;
 
 /**
  * 跳表的一种实现方法。
