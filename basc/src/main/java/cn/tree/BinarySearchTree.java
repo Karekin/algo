@@ -1,101 +1,176 @@
 package cn.tree;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
 public class BinarySearchTree {
-  private Node tree;
+    TreeNode root;
 
-  public Node find(int data) {
-    Node p = tree;
-    while (p != null) {
-      if (data < p.data) p = p.left;
-      else if (data > p.data) p = p.right;
-      else return p;
-    }
-    return null;
-  }
-  
-  public void insert(int data) {
-    if (tree == null) {
-      tree = new Node(data);
-      return;
-    }
-
-    Node p = tree;
-    while (p != null) {
-      if (data > p.data) {
-        if (p.right == null) {
-          p.right = new Node(data);
-          return;
+    /* 查找节点 */
+    public TreeNode search(int num) {
+        TreeNode cur = root;
+        // 循环查找，越过叶节点后跳出
+        while (cur != null) {
+            // 目标节点在 cur 的右子树中
+            if (cur.val < num)
+                cur = cur.right;
+                // 目标节点在 cur 的左子树中
+            else if (cur.val > num)
+                cur = cur.left;
+                // 找到目标节点，跳出循环
+            else
+                break;
         }
-        p = p.right;
-      } else { // data < p.data
-        if (p.left == null) {
-          p.left = new Node(data);
-          return;
+        // 返回目标节点
+        return cur;
+    }
+
+    /* 插入节点 */
+    public void insert(int num) {
+        // 若树为空，则初始化根节点
+        if (root == null) {
+            root = new TreeNode(num);
+            return;
         }
-        p = p.left;
-      }
-    }
-  }
-
-  public void delete(int data) {
-    Node p = tree; // p指向要删除的节点，初始化指向根节点
-    Node pp = null; // pp记录的是p的父节点
-    while (p != null && p.data != data) {
-      pp = p;
-      if (data > p.data) p = p.right;
-      else p = p.left;
-    }
-    if (p == null) return; // 没有找到
-
-    // 要删除的节点有两个子节点
-    if (p.left != null && p.right != null) { // 查找右子树中最小节点
-      Node minP = p.right;
-      Node minPP = p; // minPP表示minP的父节点
-      while (minP.left != null) {
-        minPP = minP;
-        minP = minP.left;
-      }
-      p.data = minP.data; // 将minP的数据替换到p中
-      p = minP; // 下面就变成了删除minP了
-      pp = minPP;
+        TreeNode cur = root, pre = null;
+        // 循环查找，越过叶节点后跳出
+        while (cur != null) {
+            // 找到重复节点，直接返回
+            if (cur.val == num)
+                return;
+            pre = cur;
+            // 插入位置在 cur 的右子树中
+            if (cur.val < num)
+                cur = cur.right;
+                // 插入位置在 cur 的左子树中
+            else
+                cur = cur.left;
+        }
+        // 插入节点
+        TreeNode node = new TreeNode(num);
+        if (pre.val < num)
+            pre.right = node;
+        else
+            pre.left = node;
     }
 
-    // 删除节点是叶子节点或者仅有一个子节点
-    Node child; // p的子节点
-    if (p.left != null) child = p.left;
-    else if (p.right != null) child = p.right;
-    else child = null;
-
-    if (pp == null) tree = child; // 删除的是根节点
-    else if (pp.left == p) pp.left = child;
-    else pp.right = child;
-  }
-
-  public Node findMin() {
-    if (tree == null) return null;
-    Node p = tree;
-    while (p.left != null) {
-      p = p.left;
+    /* 删除节点 */
+    public void remove(int num) {
+        // 若树为空，直接提前返回
+        if (root == null)
+            return;
+        TreeNode cur = root, pre = null;
+        // 循环查找，越过叶节点后跳出
+        while (cur != null) {
+            // 找到待删除节点，跳出循环
+            if (cur.val == num)
+                break;
+            pre = cur;
+            // 待删除节点在 cur 的右子树中
+            if (cur.val < num)
+                cur = cur.right;
+                // 待删除节点在 cur 的左子树中
+            else
+                cur = cur.left;
+        }
+        // 若无待删除节点，则直接返回
+        if (cur == null)
+            return;
+        // 子节点数量 = 0 or 1
+        if (cur.left == null || cur.right == null) {
+            // 当子节点数量 = 0 / 1 时， child = null / 该子节点
+            TreeNode child = cur.left != null ? cur.left : cur.right;
+            // 删除节点 cur
+            if (cur != root) {
+                if (pre.left == cur)
+                    pre.left = child;
+                else
+                    pre.right = child;
+            } else {
+                // 若删除节点为根节点，则重新指定根节点
+                root = child;
+            }
+        }
+        // 子节点数量 = 2
+        else {
+            // 获取中序遍历中 cur 的下一个节点
+            TreeNode tmp = cur.right;
+            while (tmp.left != null) {
+                tmp = tmp.left;
+            }
+            // 递归删除节点 tmp
+            remove(tmp.val);
+            // 用 tmp 覆盖 cur
+            cur.val = tmp.val;
+        }
     }
-    return p;
-  }
 
-  public Node findMax() {
-    if (tree == null) return null;
-    Node p = tree;
-    while (p.right != null) {
-      p = p.right;
+    /* 前序遍历 */
+    public List<Integer> preOrder() {
+        List<Integer> result = new ArrayList<>();
+        preOrderHelper(root, result);
+        return result;
     }
-    return p;
-  }
-  
-  public static class Node {
-    private int data;
-    private Node left;
-    private Node right;
 
-    public Node(int data) {
-      this.data = data;
+    private void preOrderHelper(TreeNode node, List<Integer> result) {
+        if (node == null) return;
+        result.add(node.val);
+        preOrderHelper(node.left, result);
+        preOrderHelper(node.right, result);
     }
-  }
+
+    /* 中序遍历 */
+    public List<Integer> inOrder() {
+        List<Integer> result = new ArrayList<>();
+        inOrderHelper(root, result);
+        return result;
+    }
+
+    private void inOrderHelper(TreeNode node, List<Integer> result) {
+        if (node == null) return;
+        inOrderHelper(node.left, result);
+        result.add(node.val);
+        inOrderHelper(node.right, result);
+    }
+
+    /* 后序遍历 */
+    public List<Integer> postOrder() {
+        List<Integer> result = new ArrayList<>();
+        postOrderHelper(root, result);
+        return result;
+    }
+
+    private void postOrderHelper(TreeNode node, List<Integer> result) {
+        if (node == null) return;
+        postOrderHelper(node.left, result);
+        postOrderHelper(node.right, result);
+        result.add(node.val);
+    }
+
+    /* 层序遍历 */
+    public List<Integer> levelOrder() {
+        List<Integer> result = new ArrayList<>();
+        if (root == null) return result;
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        while (!queue.isEmpty()) {
+            TreeNode node = queue.poll();
+            result.add(node.val);
+            if (node.left != null) queue.offer(node.left);
+            if (node.right != null) queue.offer(node.right);
+        }
+        return result;
+    }
+
+    // 树节点类
+    public static class TreeNode {
+        public int val;
+        TreeNode left, right;
+        TreeNode(int val) {
+            this.val = val;
+        }
+    }
 }
+

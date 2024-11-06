@@ -2,6 +2,7 @@ package cn.hashtable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 /* 基于数组实现的哈希表 */
@@ -90,6 +91,19 @@ public class ArrayHashMap {
         public Pair(int key, String val) {
             this.key = key;
             this.val = val;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Pair)) return false;
+            Pair pair = (Pair) o;
+            return key == pair.key && Objects.equals(val, pair.val);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(key, val);
         }
     }
 }

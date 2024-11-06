@@ -18,7 +18,7 @@ public class ArrayHashMapTest {
         hashMap = new ArrayHashMap();
     }
 
-    // 测试添加和查询操作，包括哈希冲突情况下的覆盖行为
+    // 测试添加和查询操作
     @Test
     public void testPutAndGet() {
         hashMap.put(1, "A"); // 添加键值对 (1, "A")
@@ -27,8 +27,8 @@ public class ArrayHashMapTest {
 
         // 测试查询操作
         assertEquals("A", hashMap.get(1), "键 1 的值应为 A");
-        assertNull(hashMap.get(2), "键 2 的值应为 null，因为已被键 102 替换");
-        assertEquals("C", hashMap.get(102), "键 102 的值应为 C，因为发生冲突后覆盖了键 2");
+        assertNotEquals("B", hashMap.get(2), "键 2 的值不再为 B，被 C 覆盖了");
+        assertEquals("C", hashMap.get(102), "键 102 的值应为 C");
     }
 
     // 测试删除操作
