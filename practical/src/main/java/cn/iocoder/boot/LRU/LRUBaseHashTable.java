@@ -1,4 +1,4 @@
-package cn.hashtable;
+package cn.iocoder.boot.LRU;
 
 import java.util.HashMap;
 
