@@ -53,6 +53,18 @@ public class GenericHeap<T> {
         siftUp(size() - 1);
     }
 
+    /* 在达到容量时移除优先级最低的元素。这种逻辑适用于有限优先队列 */
+    public void offer(T val) {
+        if (size() < capacity) {
+            // 队列未满，直接添加
+            push(val);
+        } else if (comparator.compare(val, peek()) > 0) {
+            // 队列已满，且新元素优先级高于堆顶，替换堆顶
+            pop(); // 移除优先级最低的元素
+            push(val); // 添加新元素
+        }
+    }
+
     /* 元素出堆 */
     public T pop() {
         if (isEmpty()) {
