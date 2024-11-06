@@ -12,9 +12,10 @@ import java.util.stream.IntStream;
 
 public class LockFreeQueue<E> {
     //定义头和尾的原子性节点
-    private AtomicReference<Node<E>> head, last;
+    private final AtomicReference<Node<E>> head;
+    private final AtomicReference<Node<E>> last;
     //定义原子性size
-    private AtomicInteger size = new AtomicInteger(0);
+    private final AtomicInteger size = new AtomicInteger(0);
     //初始化队列，将头和尾都指向一个null的节点
     public LockFreeQueue() {
         Node<E> node = new Node<E>(null);

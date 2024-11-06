@@ -105,15 +105,4 @@ public class Scheduler {
             this.targetTs = targetTs;
         }
     }
-
-    public static void main(String[] args) throws InterruptedException {
-        Scheduler scheduler = new Scheduler();
-
-        // Schedule a task to print a message after 2 seconds
-        scheduler.schedule(() -> System.out.println("Task executed!"), 2);
-
-        // Wait for 5 seconds before shutting down
-        Thread.sleep(5000);
-        scheduler.shutdown();
-    }
 }

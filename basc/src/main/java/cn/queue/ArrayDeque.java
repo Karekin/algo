@@ -2,7 +2,7 @@ package cn.queue;
 
 /* 基于环形数组实现的双向队列 */
 public class ArrayDeque {
-    private int[] nums; // 用于存储双向队列元素的数组
+    private final int[] nums; // 用于存储双向队列元素的数组
     private int front; // 队首指针，指向队首元素
     private int queSize; // 双向队列长度
 
