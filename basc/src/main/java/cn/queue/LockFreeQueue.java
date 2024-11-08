@@ -25,7 +25,41 @@ public class LockFreeQueue<E> {
     //定义节点类
     private static class Node<E> {
         E element;
-        //需要volatile，因为防止在next赋值的时候发生重排序，并且需要对其他线程可见
+        /*
+            需要volatile，因为防止在next赋值的时候发生重排序，并且需要对其他线程可见
+
+            在 `LockFreeQueue` 实现中，如果不使用 `volatile` 关键字来修饰 `next` 字段，
+                会导致多线程操作时出现重排序和可见性问题。让我们通过一个具体的例子来说明这些问题的影响。
+
+            问题分析：为什么需要 `volatile`？
+                1. 重排序：Java 编译器和 CPU 出于优化目的，可能会对代码进行指令重排序。
+                      如果 `next` 字段不是 `volatile` 的，JVM 在写入 `next` 的操作可能会被重排序到 `element` 被写入之后，
+                      导致其他线程在读取该节点时可能看到一个已被初始化的 `element`，但 `next` 引用仍然是 `null` 或未完全更新的状态。
+                2. 可见性：如果没有 `volatile`，对 `next` 的写操作在一个线程中对其他线程可能不可见。
+                      这意味着其他线程可能会读取到过期的 `next` 值，从而导致队列指向错误的节点，或者无法正确地遍历队列。
+            
+            示例：没有 `volatile` 导致的问题
+            假设 `Thread A` 正在调用 `addLast` 方法添加新节点，而 `Thread B` 正在调用 `removeFirst` 方法移除队首节点：
+            1. 线程 A 添加节点（不使用 `volatile`）
+               - `Thread A` 执行 `addLast` 方法，创建了一个新节点 `newNode`，并准备将其设置为当前尾节点的下一个节点。
+               - `Thread A` 依次执行以下操作：
+                 - `oldNode.next = newNode;`  // 设置当前尾节点的 `next` 指向新节点
+                 - `last.set(newNode);` // 将 `last` 更新为新节点
+            2. 重排序导致的异常
+               - 假设由于编译器或 CPU 优化，指令重排序将 `last.set(newNode);` 提前执行，导致 `last` 被更新为 `newNode` 后，才执行 `oldNode.next = newNode`。
+               - 此时，`Thread B` 调用 `removeFirst` 时看到 `last` 已指向 `newNode`，但 `oldNode.next` 仍为 `null`。
+               - 如果 `Thread B` 遍历节点链表，可能会发现尾节点断开，无法通过 `next` 找到新添加的节点，导致队列结构不完整，甚至出现空指针异常。
+            3. 可见性导致的问题
+               - 假设 `Thread A` 执行完 `oldNode.next = newNode;` 后，`next` 引用的变化没有被及时刷新到主存中。
+               - `Thread B` 执行 `removeFirst` 方法时可能会读取到一个过期的 `next` 值，认为队列尾节点是 `oldNode` 而不是 `newNode`。
+               - 这会导致 `Thread B` 看到的队列状态是错误的，`removeFirst` 方法可能会返回错误的节点，导致队列中的元素顺序不一致或丢失。
+
+            通过 `volatile` 解决的问题
+            使用 `volatile` 可以解决以上问题，因为：
+            - 防止重排序：`volatile` 保证对 `next` 的写操作和前后的指令不会发生重排序，确保新节点的 `next` 引用在 `last` 更新之前完成赋值。
+            - 保证可见性：`volatile` 保证 `next` 的更新会立即刷新到主存，其他线程能够看到最新的 `next` 值。
+            因此，`volatile` 对于 `next` 字段是必要的，以确保多线程环境下队列的结构和顺序不出现问题，确保 `LockFreeQueue` 的线程安全性。
+         */
         volatile Node<E> next;
 
         public Node(E element) {
@@ -55,6 +89,9 @@ public class LockFreeQueue<E> {
         oldNode.next = newNode;
         //队列长度+1
         size.incrementAndGet();
+
+        // 模拟延迟
+        try { Thread.sleep(1); } catch (InterruptedException ignored) {}
     }
     /*
         移除并返回队首元素
@@ -117,6 +154,9 @@ public class LockFreeQueue<E> {
         }
         //队列长度-1
         size.decrementAndGet();
+
+        // 模拟延迟
+        try { Thread.sleep(1); } catch (InterruptedException ignored) {}
         return result;
     }
 }

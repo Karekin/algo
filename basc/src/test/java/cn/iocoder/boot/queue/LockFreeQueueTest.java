@@ -2,6 +2,7 @@ package cn.iocoder.boot.queue;
 
 import cn.queue.LockFreeQueue;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayDeque;
@@ -15,6 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 public class LockFreeQueueTest {
 
     private LockFreeQueue<Integer> queue;
+
+    private static final int THREAD_COUNT = 20;
+    private static final int ELEMENTS_PER_THREAD = 500;
 
     @BeforeEach
     public void setUp() {
@@ -118,6 +122,45 @@ public class LockFreeQueueTest {
 
         // 验证队列中的元素数与写入的总数是否一致
         assertEquals(50, map.size(), "Map should contain exactly 50 unique elements.");
+    }
+
+    // 测试 LockFreeQueue 中 Node 的 volatile 字段的作用（需要提前去掉 volatile 字段）
+    @RepeatedTest(20) // 重复运行多次，增大出错几率
+    public void testConcurrentAddAndRemoveWithoutVolatile() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(THREAD_COUNT * 2);
+        AtomicInteger addCounter = new AtomicInteger(0);
+
+        // 启动添加线程
+        for (int i = 0; i < THREAD_COUNT; i++) {
+            new Thread(() -> {
+                for (int j = 0; j < ELEMENTS_PER_THREAD; j++) {
+                    queue.addLast(addCounter.incrementAndGet());
+                }
+                latch.countDown();
+            }).start();
+        }
+
+        // 启动移除线程
+        AtomicInteger removeCounter = new AtomicInteger(0);
+        for (int i = 0; i < THREAD_COUNT; i++) {
+            new Thread(() -> {
+                for (int j = 0; j < ELEMENTS_PER_THREAD; j++) {
+                    Integer value = queue.removeFirst();
+                    if (value != null) {
+                        removeCounter.incrementAndGet();
+                    }
+                }
+                latch.countDown();
+            }).start();
+        }
+
+        // 等待所有线程执行完毕
+        latch.await();
+
+        // 检查最终状态
+        int expectedSize = addCounter.get() - removeCounter.get();
+        assertEquals(expectedSize, queue.size(), "Queue size mismatch due to lack of volatile");
+        assertEquals(addCounter.get(), removeCounter.get(), "Mismatch between added and removed elements");
     }
 
     /**
