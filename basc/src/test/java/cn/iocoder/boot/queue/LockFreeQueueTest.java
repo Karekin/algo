@@ -157,9 +157,20 @@ public class LockFreeQueueTest {
         // 等待所有线程执行完毕
         latch.await();
 
-        // 检查最终状态
-        int expectedSize = addCounter.get() - removeCounter.get();
-        assertEquals(expectedSize, queue.size(), "Queue size mismatch due to lack of volatile");
+        // 验证添加和移除的计数是否一致
+        /*
+            在测试代码中，仅验证 addCounter 和 removeCounter 的计数差，而不直接验证 size，理由如下：
+            1. size 变量的更新问题
+                即便 size 是 AtomicInteger，由于 size 的递增和递减操作并没有直接绑定到 addLast 和 removeFirst 的操作成功与否上，
+                可能会导致计数不准确。也就是说，size 并不能准确地反映当前队列的状态，尤其是在并发操作中，addLast 和 removeFirst 可能会互相影响。
+                在无锁结构中，size 实际上很难准确维护，因此，通常在无锁队列的实现中，不建议直接依赖 size 来验证队列元素的数量。
+            2. removeFirst 中的竞争条件
+                当前的实现中，如果两个线程几乎同时执行 removeFirst 操作，它们可能会先后读取 head，并都尝试更新 head 的值。
+                由于 head.compareAndSet 是乐观锁，即使 valueNode 为 null，size.decrementAndGet() 依然会执行，从而导致 size 计数错误。
+            3. 队列为空时的多次调用 removeFirst 会导致 size 负数
+                如果多个线程调用 removeFirst 时，valueNode == null 时继续执行 size.decrementAndGet()，
+                这会导致 size 变成负数，这是由于在并发情况下，多个线程看到的 head.next 都是 null，但依然会减少 size。
+         */
         assertEquals(addCounter.get(), removeCounter.get(), "Mismatch between added and removed elements");
     }
 

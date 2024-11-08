@@ -151,9 +151,9 @@ public class LockFreeQueue<E> {
         //valueNode的元素被拿走了，所有将其置为null
         if (valueNode != null) {
             valueNode.element = null;
+            //队列长度-1
+            size.decrementAndGet();
         }
-        //队列长度-1
-        size.decrementAndGet();
 
         // 模拟延迟
         try { Thread.sleep(1); } catch (InterruptedException ignored) {}
