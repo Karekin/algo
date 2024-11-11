@@ -194,9 +194,25 @@ public class LinkedListBinaryTree {
     public List<Integer> postOrderWithDeque() {
         List<Integer> res = new ArrayList<>();
         if (root == null) return res;
-
+        /*
+            stack1 入栈：根、左、右
+            stack2 入栈: 根、右、左
+            后序：左、右、根
+         */
         Stack<TreeNode> stack1 = new Stack<>();
         Stack<TreeNode> stack2 = new Stack<>();
+        /*
+            在 Deque 中，add 和 push 方法的区别在于它们的添加位置和用法意图。
+
+            1. push 方法
+            push(E e)：将元素添加到栈的顶端（等效于队列的头部），也就是 Deque 的前端。
+            push 方法实际上是专门用于模拟栈行为的方法，它相当于调用 addFirst(E e)。
+            典型用途：用于实现栈的后进先出（LIFO）行为。
+            2. add 方法
+            add(E e)：默认将元素添加到 Deque 的尾端，等效于 addLast(E e)。
+            add 方法是为队列行为设计的，通常用于实现先进先出（FIFO）结构。
+            典型用途：用于实现队列的先进先出（FIFO）行为。
+        */
         stack1.push(root);
 
         while (!stack1.isEmpty()) {
