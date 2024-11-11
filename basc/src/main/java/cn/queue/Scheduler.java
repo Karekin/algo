@@ -22,6 +22,16 @@ import java.util.concurrent.locks.ReentrantLock;
  * - 任务逻辑：具体的用户任务操作，包含实际需要执行的内容，由调度线程检测到执行时间到达后，将任务提交到线程池来执行。
  */
 public class Scheduler {
+    /*
+        这个调度器的成员变量协同工作，以实现高效的定时任务管理。
+        `tasks` 保存了所有已调度的任务，以任务 ID 为键，便于快速访问；
+        `taskBuckets` 是一个按时间戳排序的集合，用于组织任务的执行时间，使得调度器能够按顺序调度任务。
+        `idGen` 用于为每个任务生成唯一的 ID，保证任务的唯一性。
+        `lock` 和 `runCv` 共同提供线程安全控制和条件唤醒，使得调度线程能够安全、高效地等待和检测新任务。
+        `stopped` 标志决定调度线程的运行状态，用于控制调度器的停止。
+        `executorService` 是线程池，用于异步执行到期的任务，提升执行效率。
+     */
+
     // 存储所有任务的Map，key为任务ID，value为任务对象
     private final Map<Long, Task> tasks = new ConcurrentHashMap<>();
     // 使用TreeMap将任务按执行时间进行排序，key为时间戳，value为任务ID列表
