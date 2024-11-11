@@ -16,7 +16,7 @@ public class Scheduler {
     private final AtomicLong idGen = new AtomicLong();
     // 可重入锁，用于线程安全的控制
     private final ReentrantLock lock = new ReentrantLock();
-    // 条件变量，控制调度线程的等待和唤醒
+    // 条件变量，控制调度线程的等待和唤醒（Condition Variable）
     private final Condition runCv = lock.newCondition();
     // 标志是否停止调度器
     private volatile boolean stopped = false;
@@ -26,8 +26,23 @@ public class Scheduler {
     public Scheduler() {
         // 初始化线程池为缓存线程池
         executorService = Executors.newCachedThreadPool();
-        // 创建并启动调度线程
-        Thread loopThread = new Thread(this::scheduleLoop);
+        /*
+            创建并启动调度线程：
+            this::scheduleLoop 是方法引用的形式，其中 this 指向当前的 Scheduler 实例，而 scheduleLoop 是当前类中的一个方法。
+            this::scheduleLoop 等价于 () -> this.scheduleLoop()，它代表一个不接受参数且没有返回值的 Runnable 接口的实例。
+            方法引用 this::scheduleLoop 相当于创建了一个 Runnable 对象，并将 scheduleLoop 方法作为该对象的 run 方法实现。
+         */
+        Thread loopThread = new Thread(this::scheduleLoop); // 写法一
+
+//        Thread loopThread = new Thread(() -> this.scheduleLoop()); // 写法二
+
+//        Thread loopThread = new Thread(new Runnable() {  // 写法三
+//            @Override
+//            public void run() {
+//                scheduleLoop();
+//            }
+//        });
+
         loopThread.setDaemon(true); // 设置为守护线程，后台运行
         loopThread.start();
     }
@@ -44,7 +59,11 @@ public class Scheduler {
         executorService.shutdown(); // 关闭线程池
     }
 
-    // 调度任务，并返回任务ID
+    /*
+        调度任务，并返回任务ID：
+        schedule 方法的作用是将一个延迟执行的任务添加到调度器中，并返回该任务的唯一 ID。
+        具体来说，它会创建一个包含任务逻辑和目标执行时间的任务对象，将该任务存储到任务列表中，并通知调度线程更新任务队列的状态。
+     */
     public long schedule(Runnable task, long delayInSec) {
         lock.lock();
         try {
