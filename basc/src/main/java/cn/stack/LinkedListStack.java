@@ -46,6 +46,10 @@ public class LinkedListStack {
     public int[] toArray() {
         ListNode node = stackPeek;
         int[] res = new int[stkSize];
+        /*
+            toArray 方法倒序遍历的原因是为了使返回的数组顺序与栈的顺序一致。
+            栈的特点是后进先出（LIFO），因此栈顶元素应对应数组的最后一个位置。
+         */
         for (int i = res.length - 1; i >= 0; i--) {
             res[i] = node.val;
             node = node.next;
