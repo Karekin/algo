@@ -70,4 +70,25 @@ public class LinkedListBinaryTreeTest {
         assertTrue(emptyTree.inOrder().isEmpty(), "空树的中序遍历应为空");
         assertTrue(emptyTree.postOrder().isEmpty(), "空树的后序遍历应为空");
     }
+
+    // 测试使用栈的前序遍历
+    @Test
+    public void testPreOrderWithStack() {
+        List<Integer> expectedOrder = Arrays.asList(1, 2, 4, 5, 3);
+        assertEquals(expectedOrder, tree.preOrderWithDeque(), "栈实现的前序遍历应为 [1, 2, 4, 5, 3]");
+    }
+
+    // 测试使用栈的中序遍历
+    @Test
+    public void testInOrderWithStack() {
+        List<Integer> expectedOrder = Arrays.asList(4, 2, 5, 1, 3);
+        assertEquals(expectedOrder, tree.inOrderWithDeque(), "栈实现的中序遍历应为 [4, 2, 5, 1, 3]");
+    }
+
+    // 测试使用栈的后序遍历
+    @Test
+    public void testPostOrderWithStack() {
+        List<Integer> expectedOrder = Arrays.asList(4, 5, 2, 3, 1);
+        assertEquals(expectedOrder, tree.postOrderWithDeque(), "栈实现的后序遍历应为 [4, 5, 2, 3, 1]");
+    }
 }
