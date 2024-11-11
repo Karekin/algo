@@ -7,6 +7,20 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ *  这个调度器中有两个 `Runnable`，它们分别用于不同的目的：
+ * 1. 调度线程的执行逻辑（`scheduleLoop` 方法）：
+ *    - 这是调度器的核心线程，负责检查所有已添加的任务，并在合适的时间将任务提交给线程池执行。
+ *    - 该线程不断循环，查找即将到达执行时间的任务。
+ *    - 它在构造方法中作为一个 `Runnable` 被传入新的 `Thread` 对象并启动，因此是调度线程的主要执行逻辑。
+ * 2. 任务的执行逻辑（`Runnable task` 参数）：
+ *    - 这是用户传递给 `schedule` 方法的 `Runnable` 对象，包含具体的任务逻辑。
+ *    - 调度线程在 `scheduleLoop` 中发现一个任务的执行时间已到时，就会将该 `Runnable` 任务提交给 `ExecutorService` 执行，从而在线程池中异步执行任务的实际内容。
+ *    - 每个任务都有一个独立的 `Runnable`，可以是任何用户定义的操作逻辑，如打印消息、发送通知等。
+ * 总结
+ * - 调度线程逻辑：负责检测、排序、等待任务的执行时间，并触发任务。
+ * - 任务逻辑：具体的用户任务操作，包含实际需要执行的内容，由调度线程检测到执行时间到达后，将任务提交到线程池来执行。
+ */
 public class Scheduler {
     // 存储所有任务的Map，key为任务ID，value为任务对象
     private final Map<Long, Task> tasks = new ConcurrentHashMap<>();
