@@ -1,92 +1,48 @@
 package cn.sorts;
 
-/**
- * Created by wangzheng on 2018/10/16.
- */
 public class MergeSort {
-
-  // 归并排序算法, a是数组，n表示数组大小
-  public static void mergeSort(int[] a, int n) {
-    mergeSortInternally(a, 0, n-1);
-  }
-
-  // 递归调用函数
-  private static void mergeSortInternally(int[] a, int p, int r) {
-    // 递归终止条件
-    if (p >= r) return;
-
-    // 取p到r之间的中间位置q,防止（p+r）的和超过int类型最大值
-    int q = p + (r - p)/2;
-    // 分治递归
-    mergeSortInternally(a, p, q);
-    mergeSortInternally(a, q+1, r);
-
-    // 将A[p...q]和A[q+1...r]合并为A[p...r]
-    merge(a, p, q, r);
-  }
-
-  private static void merge(int[] a, int p, int q, int r) {
-    int i = p;
-    int j = q+1;
-    int k = 0; // 初始化变量i, j, k
-    int[] tmp = new int[r-p+1]; // 申请一个大小跟a[p...r]一样的临时数组
-    while (i<=q && j<=r) {
-      if (a[i] <= a[j]) {
-        tmp[k++] = a[i++]; // i++等于i:=i+1
-      } else {
-        tmp[k++] = a[j++];
-      }
+    public int[] sortArray(int[] nums) {
+        // 调用归并排序方法对整个数组进行排序
+        mergeSort(nums, 0, nums.length - 1);
+        return nums; // 返回排序后的数组
     }
 
-    // 判断哪个子数组中有剩余的数据
-    int start = i;
-    int end = q;
-    if (j <= r) {
-      start = j;
-      end = r;
+    void merge(int[] nums, int left, int mid, int right) {
+        // 左子数组区间为 [left, mid], 右子数组区间为 [mid+1, right]
+        // 创建一个临时数组 tmp ，用于存放合并后的结果
+        int[] tmp = new int[right - left + 1];
+        // 初始化左子数组和右子数组的起始索引
+        int i = left, j = mid + 1, k = 0;
+        // 当左右子数组都还有元素时，进行比较并将较小的元素复制到临时数组中
+        while (i <= mid && j <= right) {
+            if (nums[i] <= nums[j])
+                tmp[k++] = nums[i++];
+            else
+                tmp[k++] = nums[j++];
+        }
+        // 将左子数组和右子数组的剩余元素复制到临时数组中
+        while (i <= mid) {
+            tmp[k++] = nums[i++];
+        }
+        while (j <= right) {
+            tmp[k++] = nums[j++];
+        }
+        // 将临时数组 tmp 中的元素复制回原数组 nums 的对应区间
+        for (k = 0; k < tmp.length; k++) {
+            nums[left + k] = tmp[k];
+        }
     }
 
-    // 将剩余的数据拷贝到临时数组tmp
-    while (start <= end) {
-      tmp[k++] = a[start++];
+    /* 归并排序 */
+    void mergeSort(int[] nums, int left, int right) {
+        // 终止条件
+        if (left >= right)
+            return; // 当子数组长度为 1 时终止递归
+        // 划分阶段
+        int mid = (left + right) / 2; // 计算中点
+        mergeSort(nums, left, mid); // 递归左子数组
+        mergeSort(nums, mid + 1, right); // 递归右子数组
+        // 合并阶段
+        merge(nums, left, mid, right);
     }
-
-    // 将tmp中的数组拷贝回a[p...r]
-    for (i = 0; i <= r-p; ++i) {
-      a[p+i] = tmp[i];
-    }
-  }
-
-  /**
-   * 合并(哨兵)
-   *
-   * @param arr
-   * @param p
-   * @param q
-   * @param r
-   */
-  private static void mergeBySentry(int[] arr, int p, int q, int r) {
-    int[] leftArr = new int[q - p + 2];
-    int[] rightArr = new int[r - q + 1];
-
-      if (q - p + 1 >= 0) System.arraycopy(arr, p + 0, leftArr, 0, q - p + 1);
-    // 第一个数组添加哨兵（最大值）
-    leftArr[q - p + 1] = Integer.MAX_VALUE;
-
-      if (r - q >= 0) System.arraycopy(arr, q + 1 + 0, rightArr, 0, r - q);
-    // 第二个数组添加哨兵（最大值）
-    rightArr[r-q] = Integer.MAX_VALUE;
-
-    int i = 0;
-    int j = 0;
-    int k = p;
-    while (k <= r) {
-      // 当左边数组到达哨兵值时，i不再增加，直到右边数组读取完剩余值，同理右边数组也一样
-      if (leftArr[i] <= rightArr[j]) {
-        arr[k++] = leftArr[i++];
-      } else {
-        arr[k++] = rightArr[j++];
-      }
-    }
-  }
 }

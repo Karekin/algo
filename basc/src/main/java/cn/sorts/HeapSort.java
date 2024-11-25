@@ -1,76 +1,52 @@
-//package cn.sorts;
-//
-///**
-// * 堆排序
-// */
-//public class HeapSort {
-//
-//    /**
-//     * 排序
-//     * <p>
-//     * 堆元素是从数组下标0开始
-//     *
-//     * @param arr
-//     */
-//    public static void sort(int[] arr) {
-//        if (arr.length <= 1) {
-//            return;
-//        }
-//
-//        // 1、建堆
-//        buildHeap(arr);
-//
-//        // 2、排序
-//        int k = arr.length - 1;
-//        while (k > 0) {
-//            // 将堆顶元素（最大）与最后一个元素交换位置
-//            swap(arr, 0, k);
-//            // 将剩下元素重新堆化，堆顶元素变成最大元素
-//            heapify(arr, --k, 0);
-//        }
-//    }
-//
-//    /**
-//     * 建堆
-//     *
-//     * @param arr
-//     */
-//    private static void buildHeap(int[] arr) {
-//        // (arr.length - 1) / 2 为最后一个叶子节点的父节点
-//        // 也就是最后一个非叶子节点，依次堆化直到根节点
-//        for (int i = (arr.length - 1) / 2; i >= 0; i--) {
-//            heapify(arr, arr.length - 1, i);
-//        }
-//    }
-//
-//    /**
-//     * 堆化
-//     *
-//     * @param arr 要堆化的数组
-//     * @param n   最后堆元素下标
-//     * @param i   要堆化的元素下标
-//     */
-//    private static void heapify(int[] arr, int n, int i) {
-//        while (true) {
-//            // 最大值位置
-//            int maxPos = i;
-//            // 与左子节点（i * 2 + 1）比较，获取最大值位置
-//            if (i * 2 + 1 <= n && arr[i] < arr[i * 2 + 1]) {
-//                maxPos = i * 2 + 1;
-//            }
-//            // 最大值与右子节点（i * 2 + 2）比较，获取最大值位置
-//            if (i * 2 + 2 <= n && arr[maxPos] < arr[i * 2 + 2]) {
-//                maxPos = i * 2 + 2;
-//            }
-//            // 最大值是当前位置结束循环
-//            if (maxPos == i) {
-//                break;
-//            }
-//            // 与子节点交换位置
-//            swap(arr, i, maxPos);
-//            // 以交换后子节点位置接着往下查找
-//            i = maxPos;
-//        }
-//    }
-//
-//}
+package cn.sorts;
+
+/**
+ * 堆排序
+ */
+public class HeapSort {
+    public int[] sortArray(int[] nums) {
+        // 调用堆排序方法对数组进行排序
+        heapSort(nums);
+        return nums; // 返回排序后的数组
+    }
+
+    /* 堆的长度为 n ，从节点 i 开始，从顶至底堆化 */
+    void siftDown(int[] nums, int n, int i) {
+        while (true) {
+            // 判断节点 i, l, r 中值最大的节点，记为 ma
+            int l = 2 * i + 1;
+            int r = 2 * i + 2;
+            int ma = i;
+            if (l < n && nums[l] > nums[ma])
+                ma = l;
+            if (r < n && nums[r] > nums[ma])
+                ma = r;
+            // 若节点 i 最大或索引 l, r 越界，则无须继续堆化，跳出
+            if (ma == i)
+                break;
+            // 交换两节点
+            int temp = nums[i];
+            nums[i] = nums[ma];
+            nums[ma] = temp;
+            // 循环向下堆化
+            i = ma;
+        }
+    }
+
+    /* 堆排序 */
+    void heapSort(int[] nums) {
+        // 建堆操作：堆化除叶节点以外的其他所有节点
+        for (int i = nums.length / 2 - 1; i >= 0; i--) {
+            siftDown(nums, nums.length, i);
+        }
+        // 从堆中提取最大元素，循环 n-1 轮
+        for (int i = nums.length - 1; i > 0; i--) {
+            // 交换根节点与最右叶节点（交换首元素与尾元素）
+            int tmp = nums[0];
+            nums[0] = nums[i];
+            nums[i] = tmp;
+            // 以根节点为起点，从顶至底进行堆化
+            siftDown(nums, i, 0);
+        }
+    }
+}
