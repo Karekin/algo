@@ -47,7 +47,7 @@ public class QuickSort {
             swap(nums, i, j); // 交换这两个元素
         }
         swap(nums, i, left);  // 将基准数交换至两子数组的分界线
-        return i;             // 返回基准数的索引
+        return i;             // 返回基准数的索引（left 是固定的起始位置，而不是pivot的位置）
     }
 
     /* 哨兵划分（三数取中值优化） */
