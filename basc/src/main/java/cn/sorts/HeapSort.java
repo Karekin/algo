@@ -34,6 +34,7 @@ public class HeapSort {
     void siftDown(int[] nums, int n, int i) {
         while (true) {
             // 判断节点 i, l, r 中值最大的节点，记为 ma
+            // left 和 right 的计算应基于堆的当前大小 n，而不是数组长度
             int l = left(i);
             int r = right(i);
             int ma = i;
