@@ -18,7 +18,7 @@ public class HeapSort {
     /* 堆排序 */
     void heapSort(int[] nums) {
         // 建堆操作：堆化除叶节点以外的其他所有节点
-        for (int i = nums.length / 2 - 1; i >= 0; i--) {
+        for (int i = parent(nums.length - 1); i >= 0; i--) {
             siftDown(nums, nums.length, i);
         }
         // 从堆中提取最大元素，循环 n-1 轮
@@ -66,5 +66,10 @@ public class HeapSort {
     /* 获取右子节点的索引 */
     int right(int i) {
         return 2 * i + 2;
+    }
+
+    /* 获取父节点的索引 */
+    int parent(int i) {
+        return (i - 1) / 2; // 向下整除
     }
 }
