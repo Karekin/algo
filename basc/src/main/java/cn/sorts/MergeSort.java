@@ -7,6 +7,19 @@ public class MergeSort {
         return nums; // 返回排序后的数组
     }
 
+    /* 归并排序 */
+    void mergeSort(int[] nums, int left, int right) {
+        // 终止条件
+        if (left >= right)
+            return; // 当子数组长度为 1 时终止递归
+        // 划分阶段
+        int mid = (left + right) / 2; // 计算中点
+        mergeSort(nums, left, mid); // 递归左子数组
+        mergeSort(nums, mid + 1, right); // 递归右子数组
+        // 合并阶段
+        merge(nums, left, mid, right);
+    }
+
     void merge(int[] nums, int left, int mid, int right) {
         // 左子数组区间为 [left, mid], 右子数组区间为 [mid+1, right]
         // 创建一个临时数组 tmp ，用于存放合并后的结果
@@ -31,18 +44,5 @@ public class MergeSort {
         for (k = 0; k < tmp.length; k++) {
             nums[left + k] = tmp[k];
         }
-    }
-
-    /* 归并排序 */
-    void mergeSort(int[] nums, int left, int right) {
-        // 终止条件
-        if (left >= right)
-            return; // 当子数组长度为 1 时终止递归
-        // 划分阶段
-        int mid = (left + right) / 2; // 计算中点
-        mergeSort(nums, left, mid); // 递归左子数组
-        mergeSort(nums, mid + 1, right); // 递归右子数组
-        // 合并阶段
-        merge(nums, left, mid, right);
     }
 }
