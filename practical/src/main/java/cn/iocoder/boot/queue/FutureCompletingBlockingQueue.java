@@ -10,89 +10,70 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-
 /**
- * A custom implementation of a blocking queue in combination with a {@link CompletableFuture} to
- * hand over data between producer and consumer threads. Compared to a standard blocking queue, this
- * class offers an asynchronous availability notification mechanism via a {@link
- * #getAvailabilityFuture()}.
+ * 一个自定义的阻塞队列实现，结合 {@link CompletableFuture}，用于生产者和消费者线程之间的数据交互。
  *
- * <h3>Consumer Notifications</h3>
+ * <h3>消费者通知机制</h3>
  *
- * <p>Instead of having the consumer block on {@link #take()} or periodically call {@link #poll()},
- * the consumer can obtain a {@link CompletableFuture} from {@link #getAvailabilityFuture()} that
- * completes whenever the queue becomes non-empty. This allows asynchronous callbacks or checks.
+ * <p>不同于标准的 {@link java.util.concurrent.BlockingQueue}，此队列支持**异步可用性通知**。
+ * 消费者不必阻塞在 {@link #take()} 方法上或不断轮询 {@link #poll()} 方法，
+ * 而是可以通过 {@link #getAvailabilityFuture()} 获取一个 {@link CompletableFuture}，
+ * 该 Future 在队列有数据可用时会自动完成，从而支持**异步回调**。</p>
  *
- * <p>The future can also be explicitly completed by {@link #notifyAvailable()}, letting a consumer
- * know about a special condition without actually enqueueing an element.
+ * <p>此外，调用 {@link #notifyAvailable()} 方法可手动触发 Future 完成，通知消费者有数据可用。
+ * 但是，这并不保证队列内一定有数据，因此消费者需要调用 {@link #poll()} 进行实际获取。</p>
  *
- * <p>Note: This class can produce <i>false positives</i> – i.e., the future may be completed even
- * if the queue has already been consumed by another thread. The consumer should always check
- * whether {@link #poll()} is actually returning an element, and if not, it should obtain a new
- * future to wait on.
+ * <h3>生产者唤醒机制</h3>
  *
- * <h3>Producer Wakeup</h3>
+ * <p>如果生产者因队列已满而阻塞，它可以通过 {@link #wakeUpPuttingThread(int)} 被**安全地唤醒**，
+ * 而无需使用中断（interrupt），从而避免异常中断影响正常逻辑。</p>
  *
- * <p>Additionally, if a producer thread is blocked by a full queue, it can be gracefully woken up
- * via the {@link #wakeUpPuttingThread(int)} method without needing to interrupt the thread.
- *
- * @param <T> The type of elements stored in the queue.
+ * @param <T> 队列中存储的元素类型
  */
 public class FutureCompletingBlockingQueue<T> {
 
-    /**
-     * A constant future that is always complete, indicating availability. If the queue is
-     * guaranteed to be available, you can use this reference to avoid extra volatile writes.
-     */
+    /** 一个已经完成的 Future，表示队列是可用的（非空）。用于优化性能，避免不必要的 volatile 变量操作。 */
     public static final CompletableFuture<Void> AVAILABLE = CompletableFuture.completedFuture(null);
 
     // ------------------------------------------------------------------------
-    //  Fields
+    //  内部字段
     // ------------------------------------------------------------------------
 
-    /** The maximum capacity of the queue. Must be > 0. */
+    /** 队列的最大容量，必须大于 0 */
     private final int capacity;
 
-    /**
-     * The availability future, acting like a "non-empty" indicator. If complete, it means the queue
-     * might have data (but not guaranteed).
-     */
+    /** 一个 Future，表示队列是否可能有数据（非严格保证）。如果完成，表示队列可能非空。 */
     private CompletableFuture<Void> currentFuture;
 
-    /** Lock used to protect all queue operations and conditions. */
+    /** 互斥锁，保护所有队列操作 */
     private final Lock lock;
 
-    /** The internal queue storing elements. Access must hold {@link #lock}. */
+    /** 存储队列元素的内部容器，需要获取锁后访问 */
     private final Queue<T> queue;
 
-    /**
-     * A queue of conditions for threads that are waiting to put elements when the queue is full.
-     */
+    /** 存储因队列已满而等待的生产者线程的条件变量 */
     private final Queue<Condition> notFull;
 
-    /**
-     * Holds a {@link ConditionAndFlag} for each producer thread, indexed by an integer
-     * "threadIndex".
-     */
+    /** 每个生产者线程的等待条件和唤醒标志，按线程索引存储 */
     private ConditionAndFlag[] putConditionAndFlags;
 
     // ------------------------------------------------------------------------
-    //  Constructors
+    //  构造方法
     // ------------------------------------------------------------------------
 
-    /** Creates a queue with a default capacity (e.g., 256). */
+    /** 创建一个默认大小的队列（默认容量 256） */
     public FutureCompletingBlockingQueue() {
         this(256);
     }
 
     /**
-     * Creates a queue with the specified maximum capacity.
+     * 创建一个具有指定容量的队列。
      *
-     * @param capacity The maximum number of elements that can be stored in this queue.
+     * @param capacity 队列的最大容量，必须 > 0
      */
     public FutureCompletingBlockingQueue(int capacity) {
         if (capacity <= 0) {
-            throw new IllegalArgumentException("Queue capacity must be > 0");
+            throw new IllegalArgumentException("队列容量必须大于 0");
         }
         this.capacity = capacity;
         this.queue = new ArrayDeque<>(capacity);
@@ -100,33 +81,30 @@ public class FutureCompletingBlockingQueue<T> {
         this.putConditionAndFlags = new ConditionAndFlag[1];
         this.notFull = new ArrayDeque<>();
 
-        // Initially, the queue is empty, so we use a non-completed future.
+        // 初始状态：队列为空，因此使用未完成的 Future
         this.currentFuture = new CompletableFuture<>();
     }
 
     // ------------------------------------------------------------------------
-    //  Future / Notification logic
+    //  Future / 通知机制
     // ------------------------------------------------------------------------
 
     /**
-     * Returns a {@link CompletableFuture} that completes when the queue is (or may be) non-empty.
-     * <p>
-     * If the queue is empty, the returned future will complete the next time the queue
-     * transitions to non-empty or if {@link #notifyAvailable()} is called. If multiple consumers
-     * use this queue, the future may complete even if the data is taken by another consumer; after
-     * a null {@link #poll()}, the consumer should call this method again to get a new future.
+     * 获取一个 Future，该 Future 在队列可能非空时会自动完成。
      *
-     * @return A future completed when the queue is likely non-empty.
+     * <p>如果队列为空，返回的 Future 只有在队列变为非空时才会完成。
+     * 但请注意，多个消费者可能竞争数据，因此 Future 完成并不严格保证队列仍有数据。</p>
+     *
+     * @return 当队列可能非空时完成的 Future
      */
     public CompletableFuture<Void> getAvailabilityFuture() {
         return currentFuture;
     }
 
     /**
-     * Marks the current future as complete if not already complete, indicating potential
-     * availability to consumers. Future calls to {@link #getAvailabilityFuture()} will return a
-     * completed future, until the queue is discovered empty again by {@link #poll()} or {@link
-     * #take()}.
+     * 手动触发 Future 完成，表示队列可能有数据可用。
+     *
+     * <p>即使队列为空，也可以调用此方法，以便让消费者尝试获取数据。</p>
      */
     public void notifyAvailable() {
         lock.lock();
@@ -137,7 +115,7 @@ public class FutureCompletingBlockingQueue<T> {
         }
     }
 
-    // Internal method: sets currentFuture to AVAILABLE if not already.
+    /** 内部方法：如果当前 Future 不是 AVAILABLE，则将其设为 AVAILABLE 并完成旧 Future */
     private void moveToAvailable() {
         if (currentFuture != AVAILABLE) {
             CompletableFuture<Void> old = currentFuture;
@@ -146,7 +124,7 @@ public class FutureCompletingBlockingQueue<T> {
         }
     }
 
-    // Internal method: sets currentFuture to a new incomplete future if it was AVAILABLE.
+    /** 内部方法：如果当前 Future 是 AVAILABLE，则创建一个新的未完成 Future */
     private void moveToUnAvailable() {
         if (currentFuture == AVAILABLE) {
             currentFuture = new CompletableFuture<>();
@@ -154,27 +132,25 @@ public class FutureCompletingBlockingQueue<T> {
     }
 
     // ------------------------------------------------------------------------
-    //  Blocking Queue Logic
+    //  阻塞队列逻辑
     // ------------------------------------------------------------------------
 
     /**
-     * Enqueues the given element. If the queue is full, the calling thread will be blocked until
-     * space is available or until it is woken up by {@link #wakeUpPuttingThread(int)}.
+     * 添加元素到队列。如果队列已满，则当前线程会阻塞，直到有空间可用或被 {@link #wakeUpPuttingThread(int)} 唤醒。
      *
-     * @param threadIndex An integer identifying the calling producer thread.
-     * @param element The element to enqueue (must not be null).
-     * @return true if the element was successfully enqueued, false if the thread was woken up
-     *     before being able to enqueue.
-     * @throws InterruptedException if the thread is interrupted while waiting for space.
+     * @param threadIndex 生产者线程的索引
+     * @param element 需要加入队列的元素，不能为 null
+     * @return 如果元素成功加入队列，则返回 true；如果线程被唤醒且未加入元素，则返回 false
+     * @throws InterruptedException 如果线程在等待过程中被中断
      */
     public boolean put(int threadIndex, T element) throws InterruptedException {
         if (element == null) {
-            throw new NullPointerException("Element must not be null");
+            throw new NullPointerException("队列元素不能为 null");
         }
         lock.lockInterruptibly();
         try {
             while (queue.size() >= capacity) {
-                // If the wakeUp flag is set, return false immediately.
+                // 如果被唤醒，则返回 false
                 if (getAndResetWakeUpFlag(threadIndex)) {
                     return false;
                 }
@@ -188,35 +164,28 @@ public class FutureCompletingBlockingQueue<T> {
     }
 
     /**
-     * <b>Warning:</b> This is a blocking method that may repeatedly reset the availability future if
-     * used heavily. It is intended primarily for testing or cases where blocking is acceptable.
+     * 取出队列的第一个元素，并在队列为空时阻塞。
      *
-     * <p>Retrieves and removes the first element from the queue, blocking until one is available.
-     * The method internally uses {@link #getAvailabilityFuture()} to avoid busy waiting, but
-     * repeated calls may cause spurious resets of availability.
-     *
-     * @return The first element in the queue.
-     * @throws InterruptedException If the thread is interrupted while waiting.
+     * @return 队列中的第一个元素
+     * @throws InterruptedException 如果线程在等待过程中被中断
      */
     public T take() throws InterruptedException {
         T next;
         while ((next = poll()) == null) {
-            // Wait for availability
+            // 使用 Future 避免忙等待
             try {
                 getAvailabilityFuture().get();
             } catch (ExecutionException | CompletionException e) {
-                // This theoretically should not happen often
-                throw new RuntimeException("Exception in queue future completion", e);
+                throw new RuntimeException("队列 Future 发生异常", e);
             }
         }
         return next;
     }
 
     /**
-     * Retrieves and removes the first element of this queue, or returns null if this queue is
-     * empty. If the queue becomes empty (or was already empty), availability is reset.
+     * 从队列中取出并移除第一个元素。如果队列为空，则返回 null。
      *
-     * @return The head of the queue, or null if empty.
+     * @return 队列中的第一个元素，如果队列为空，则返回 null
      */
     public T poll() {
         lock.lock();
@@ -278,12 +247,14 @@ public class FutureCompletingBlockingQueue<T> {
         }
     }
 
+    // ------------------------------------------------------------------------
+    //  生产者唤醒机制
+    // ------------------------------------------------------------------------
+
     /**
-     * If the producer thread with the given index is blocked in {@link #put(int, Object)} due to a
-     * full queue, calling this method will let that thread exit with a <code>false</code> return
-     * value instead of waiting indefinitely or being interrupted.
+     * 唤醒正在等待的生产者线程，使其可以继续执行（例如因为队列已满而阻塞的线程）。
      *
-     * @param threadIndex The identifier of the producer thread to wake up.
+     * @param threadIndex 生产者线程的索引
      */
     public void wakeUpPuttingThread(int threadIndex) {
         lock.lock();
@@ -291,9 +262,7 @@ public class FutureCompletingBlockingQueue<T> {
             maybeCreateCondition(threadIndex);
             ConditionAndFlag caf = putConditionAndFlags[threadIndex];
             if (caf != null) {
-                // Mark the thread to wake up
                 caf.setWakeUp(true);
-                // Signal the condition to release the producer from put()
                 caf.condition().signal();
             }
         } finally {
@@ -302,64 +271,105 @@ public class FutureCompletingBlockingQueue<T> {
     }
 
     // ------------------------------------------------------------------------
-    //  Internal Helpers
-    // ------------------------------------------------------------------------
+//  内部辅助方法（Internal Helpers）
+// ------------------------------------------------------------------------
 
+    /**
+     * 将元素添加到队列。如果队列为空，则同时更新可用性状态，并尝试唤醒等待的生产者。
+     *
+     * @param element 需要入队的元素
+     */
     private void enqueue(T element) {
         final int sizeBefore = queue.size();
         queue.add(element);
 
-        // If the queue was empty, mark availability
+        // 如果队列之前是空的，说明新的数据到来了，需要标记队列为“可用”
         if (sizeBefore == 0) {
             moveToAvailable();
         }
-        // If there's space left and some thread is waiting to put, wake up one.
+
+        // 如果队列未满，并且有生产者在等待空位，则唤醒一个等待中的生产者
         if (sizeBefore < capacity - 1 && !notFull.isEmpty()) {
             signalNextPutter();
         }
     }
 
+    /**
+     * 从队列中取出一个元素。如果队列为空，则重置可用性状态，并尝试唤醒等待的生产者。
+     *
+     * @return 队列中的第一个元素，如果队列为空，则返回 null
+     */
     private T dequeue() {
         final int sizeBefore = queue.size();
         final T element = queue.poll();
 
-        // If the queue was full, we can signal another producer that space is now available
+        // 如果队列之前是满的，现在有了空位，可以唤醒一个等待的生产者
         if (sizeBefore == capacity && !notFull.isEmpty()) {
             signalNextPutter();
         }
 
-        // If the queue is now empty, reset availability
+        // 如果队列现在变为空了，需要标记队列为“不可用”
         if (queue.isEmpty()) {
             moveToUnAvailable();
         }
         return element;
     }
 
+    /**
+     * 让当前生产者线程进入等待状态，直到有空位可以插入数据。
+     *
+     * @param threadIndex 当前生产者线程的索引
+     * @throws InterruptedException 如果线程在等待过程中被中断
+     */
     private void waitOnPut(int threadIndex) throws InterruptedException {
+        // 确保当前线程有对应的 Condition 变量
         maybeCreateCondition(threadIndex);
+
+        // 获取当前线程的 Condition 变量，并加入等待队列
         Condition cond = putConditionAndFlags[threadIndex].condition();
         notFull.add(cond);
+
+        // 线程进入等待状态，直到被唤醒（通常是因为队列中出现了空位）
         cond.await();
     }
 
+    /**
+     * 唤醒下一个等待的生产者线程，允许它继续插入数据。
+     */
     private void signalNextPutter() {
         if (!notFull.isEmpty()) {
             notFull.poll().signal();
         }
     }
 
+    /**
+     * 确保给定的生产者线程索引有一个可用的 Condition 变量（用于等待和唤醒）。
+     *
+     * @param threadIndex 生产者线程的索引
+     */
     private void maybeCreateCondition(int threadIndex) {
+        // 如果当前线程索引超出了数组范围，扩展数组
         if (putConditionAndFlags.length <= threadIndex) {
             putConditionAndFlags = Arrays.copyOf(putConditionAndFlags, threadIndex + 1);
         }
+
+        // 如果该索引对应的 ConditionAndFlag 为空，则创建新的 Condition 变量
         if (putConditionAndFlags[threadIndex] == null) {
             putConditionAndFlags[threadIndex] = new ConditionAndFlag(lock.newCondition());
         }
     }
 
+    /**
+     * 检查并重置当前线程的“唤醒标志”。如果标志为 true，则重置它并返回 true。
+     *
+     * @param threadIndex 生产者线程的索引
+     * @return 如果线程需要被唤醒，则返回 true；否则返回 false
+     */
     private boolean getAndResetWakeUpFlag(int threadIndex) {
         maybeCreateCondition(threadIndex);
         ConditionAndFlag caf = putConditionAndFlags[threadIndex];
+
+        // 如果当前线程被标记为需要唤醒，则重置标志并返回 true
         if (caf.getWakeUp()) {
             caf.setWakeUp(false);
             return true;
@@ -367,34 +377,55 @@ public class FutureCompletingBlockingQueue<T> {
         return false;
     }
 
-    // ------------------------------------------------------------------------
-    //  Inner Class: ConditionAndFlag
-    // ------------------------------------------------------------------------
+// ------------------------------------------------------------------------
+//  内部类：ConditionAndFlag
+// ------------------------------------------------------------------------
 
     /**
-     * A holder for a {@link Condition} and a boolean "wakeUp" flag. Each producer thread index gets
-     * one of these for managing blocking on put() and graceful wake-up.
+     * 维护一个 {@link Condition} 变量和一个 boolean 类型的“唤醒标志”。
+     * 这个类用于管理生产者线程的阻塞与唤醒状态。
      */
     private static class ConditionAndFlag {
-        private final Condition cond;
-        private boolean wakeUp;
+        private final Condition cond;  // 线程等待的条件变量
+        private boolean wakeUp;        // 是否需要唤醒该线程的标志
 
+        /**
+         * 构造方法，初始化 Condition 变量。
+         *
+         * @param cond 线程等待的条件变量
+         */
         ConditionAndFlag(Condition cond) {
             this.cond = cond;
             this.wakeUp = false;
         }
 
+        /**
+         * 获取 Condition 变量。
+         *
+         * @return 线程等待的条件变量
+         */
         Condition condition() {
             return cond;
         }
 
+        /**
+         * 获取“唤醒标志”。
+         *
+         * @return 如果线程应被唤醒，则返回 true；否则返回 false
+         */
         boolean getWakeUp() {
             return wakeUp;
         }
 
+        /**
+         * 设置“唤醒标志”。
+         *
+         * @param value 是否应唤醒该线程
+         */
         void setWakeUp(boolean value) {
             wakeUp = value;
         }
     }
+
 }
 

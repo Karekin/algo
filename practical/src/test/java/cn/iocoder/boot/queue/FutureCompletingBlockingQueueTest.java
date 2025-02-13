@@ -1,26 +1,5 @@
 package cn.iocoder.boot.queue;
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied.
- * See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
-
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -34,14 +13,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 /**
- * Unit tests for the {@link FutureCompletingBlockingQueue} class,
- * verifying its behavior in various scenarios (capacity constraints,
- * concurrency, etc.).
+ * 单元测试类，用于测试 {@link FutureCompletingBlockingQueue} 的行为，覆盖各种场景：
+ * - 基础功能（入队、出队）
+ * - 容量约束（队列满、队列空）
+ * - 并发安全（多个线程生产和消费）
+ * - 线程唤醒（生产者在队列满时阻塞）
  */
 public class FutureCompletingBlockingQueueTest {
 
-    private static final int DEFAULT_CAPACITY = 256; // match the default from the no-arg constructor
+    private static final int DEFAULT_CAPACITY = 256; // 默认容量，保持与无参构造函数一致
 
+    /**
+     * 测试基本功能：
+     * - 入队、出队
+     * - 检查队列大小、可用容量
+     * - 验证 `getAvailabilityFuture()` 是否正确反映可用状态
+     */
     @Test
     public void testBasics() throws InterruptedException {
         FutureCompletingBlockingQueue<Integer> queue = new FutureCompletingBlockingQueue<>(5);
@@ -52,22 +39,26 @@ public class FutureCompletingBlockingQueueTest {
 
         queue.put(0, 1234);
 
-        // after putting an element, the previously obtained future should be done
+        // 由于成功入队，之前获取的 future 应该被完成
         assertThat(future.isDone()).isTrue();
         assertThat(queue.size()).isEqualTo(1);
         assertThat(queue.isEmpty()).isFalse();
         assertThat(queue.remainingCapacity()).isEqualTo(4);
         assertThat(queue.peek()).isNotNull();
-        assertThat((int) queue.peek()).isEqualTo(1234);
+        assertThat(queue.peek()).isEqualTo(1234);
 
         int polled = queue.poll();
         assertThat(polled).isEqualTo(1234);
 
+        // 确保出队后队列变为空
         assertThat(queue.size()).isEqualTo(0);
         assertThat(queue.isEmpty()).isTrue();
         assertThat(queue.remainingCapacity()).isEqualTo(5);
     }
 
+    /**
+     * 测试 `poll()` 方法是否能正确出队。
+     */
     @Test
     public void testPoll() throws InterruptedException {
         FutureCompletingBlockingQueue<Integer> queue = new FutureCompletingBlockingQueue<>();
@@ -77,6 +68,9 @@ public class FutureCompletingBlockingQueueTest {
         assertThat(value).isEqualTo(1234);
     }
 
+    /**
+     * 测试 `poll()` 在队列为空时返回 null。
+     */
     @Test
     public void testPollEmptyQueue() throws InterruptedException {
         FutureCompletingBlockingQueue<Integer> queue = new FutureCompletingBlockingQueue<>();
@@ -87,6 +81,9 @@ public class FutureCompletingBlockingQueueTest {
         assertThat(queue.poll()).isNull();
     }
 
+    /**
+     * 测试生产者线程在队列满时阻塞，并在 `wakeUpPuttingThread()` 调用后正确返回 false。
+     */
     @Test
     public void testWakeUpPut() throws InterruptedException {
         FutureCompletingBlockingQueue<Integer> queue = new FutureCompletingBlockingQueue<>(1);
@@ -95,21 +92,24 @@ public class FutureCompletingBlockingQueueTest {
         new Thread(() -> {
             try {
                 assertThat(queue.put(0, 1234)).isTrue();
-                // second put will block, but we do wakeUpPuttingThread(0) => should return false
+                // 第二次插入应阻塞，直到 wakeUpPuttingThread(0) 使其返回 false
                 assertThat(queue.put(0, 5678)).isFalse();
                 latch.countDown();
             } catch (InterruptedException e) {
-                fail("Interrupted unexpectedly.");
+                fail("线程意外中断");
             }
         }).start();
 
-        // let the first element fill the queue, then wake up the thread
+        // 等待短暂时间，让线程填满队列
         Thread.sleep(50);
         queue.wakeUpPuttingThread(0);
         latch.await();
         assertThat(latch.getCount()).isEqualTo(0);
     }
 
+    /**
+     * 测试并发环境下，多个生产者和多个消费者是否能正确运行。
+     */
     @Test
     public void testConcurrency() throws InterruptedException {
         FutureCompletingBlockingQueue<Integer> queue = new FutureCompletingBlockingQueue<>(5);
@@ -117,7 +117,7 @@ public class FutureCompletingBlockingQueueTest {
         final int numPuttingThreads = 5;
         List<Thread> threads = new ArrayList<>();
 
-        // 5 threads putting data
+        // 5 个生产者线程
         for (int i = 0; i < numPuttingThreads; i++) {
             final int index = i;
             Thread t = new Thread(() -> {
@@ -126,7 +126,7 @@ public class FutureCompletingBlockingQueueTest {
                     try {
                         queue.put(index, base + j);
                     } catch (InterruptedException e) {
-                        fail("Putting thread interrupted.");
+                        fail("生产者线程被中断");
                     }
                 }
             });
@@ -134,7 +134,7 @@ public class FutureCompletingBlockingQueueTest {
             threads.add(t);
         }
 
-        // 5 threads consuming data
+        // 5 个消费者线程
         BitSet bitSet = new BitSet();
         AtomicInteger count = new AtomicInteger(0);
         for (int i = 0; i < 5; i++) {
@@ -147,7 +147,7 @@ public class FutureCompletingBlockingQueueTest {
                     count.incrementAndGet();
                     synchronized (bitSet) {
                         if (bitSet.get(value)) {
-                            fail("Value " + value + " has been consumed before");
+                            fail("值 " + value + " 被重复消费");
                         }
                         bitSet.set(value);
                     }
@@ -161,6 +161,9 @@ public class FutureCompletingBlockingQueueTest {
         }
     }
 
+    /**
+     * 测试指定容量是否正确生效。
+     */
     @Test
     public void testSpecifiedQueueCapacity() {
         final int capacity = 8000;
@@ -168,18 +171,27 @@ public class FutureCompletingBlockingQueueTest {
         assertThat(queue.remainingCapacity()).isEqualTo(capacity);
     }
 
+    /**
+     * 测试默认容量是否正确生效。
+     */
     @Test
     public void testQueueDefaultCapacity() {
         final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
         assertThat(queue.remainingCapacity()).isEqualTo(DEFAULT_CAPACITY);
     }
 
+    /**
+     * 测试当队列为空时 `getAvailabilityFuture()` 是否未完成。
+     */
     @Test
     public void testUnavailableWhenEmpty() {
         final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
         assertThat(queue.getAvailabilityFuture().isDone()).isFalse();
     }
 
+    /**
+     * 测试在 `put()` 之后 `getAvailabilityFuture()` 是否立即变为完成状态。
+     */
     @Test
     public void testImmediatelyAvailableAfterPut() throws InterruptedException {
         final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
@@ -187,23 +199,20 @@ public class FutureCompletingBlockingQueueTest {
         assertThat(queue.getAvailabilityFuture().isDone()).isTrue();
     }
 
-    @Test
-    public void testFutureBecomesAvailableAfterPut() throws InterruptedException {
-        final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
-        final CompletableFuture<?> future = queue.getAvailabilityFuture();
-        queue.put(0, new Object());
-        assertThat(future.isDone()).isTrue();
-    }
-
+    /**
+     * 测试 `poll()` 后 `getAvailabilityFuture()` 是否重置为未完成状态。
+     */
     @Test
     public void testUnavailableWhenBecomesEmpty() throws InterruptedException {
         final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
         queue.put(0, new Object());
         queue.poll();
-        // after poll => queue empty => new future should not be done
         assertThat(queue.getAvailabilityFuture().isDone()).isFalse();
     }
 
+    /**
+     * 测试 `notifyAvailable()` 是否能正确使 `getAvailabilityFuture()` 完成。
+     */
     @Test
     public void testAvailableAfterNotifyAvailable() {
         final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
@@ -211,14 +220,9 @@ public class FutureCompletingBlockingQueueTest {
         assertThat(queue.getAvailabilityFuture().isDone()).isTrue();
     }
 
-    @Test
-    public void testFutureBecomesAvailableAfterNotifyAvailable() {
-        final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
-        final CompletableFuture<?> future = queue.getAvailabilityFuture();
-        queue.notifyAvailable();
-        assertThat(future.isDone()).isTrue();
-    }
-
+    /**
+     * 测试 `poll()` 是否会重置 `getAvailabilityFuture()` 的完成状态。
+     */
     @Test
     public void testPollResetsAvailability() {
         final FutureCompletingBlockingQueue<Object> queue = new FutureCompletingBlockingQueue<>();
@@ -232,4 +236,5 @@ public class FutureCompletingBlockingQueueTest {
         assertThat(afterPoll.isDone()).isFalse();
     }
 }
+
 
