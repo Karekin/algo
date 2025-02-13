@@ -150,7 +150,8 @@ public class FutureCompletingBlockingQueue<T> {
         lock.lockInterruptibly();
         try {
             while (queue.size() >= capacity) {
-                // 如果被唤醒，则返回 false
+                // 如果 ConditionAndFlag 的 wakeUp 被重置（从唤醒到睡眠），则返回 true；
+                // 如果 ConditionAndFlag 的 wakeUp 本来就是 睡眠，则返回 false
                 if (getAndResetWakeUpFlag(threadIndex)) {
                     return false;
                 }
@@ -360,7 +361,7 @@ public class FutureCompletingBlockingQueue<T> {
     }
 
     /**
-     * 检查并重置当前线程的“唤醒标志”。如果标志为 true，则重置它并返回 true。
+     * 检查并重置当前线程的“唤醒标志”。如果标志为 true，则重置它（wakeUp设为false）并返回 true（表示重置成功）。
      *
      * @param threadIndex 生产者线程的索引
      * @return 如果线程需要被唤醒，则返回 true；否则返回 false
@@ -369,7 +370,7 @@ public class FutureCompletingBlockingQueue<T> {
         maybeCreateCondition(threadIndex);
         ConditionAndFlag caf = putConditionAndFlags[threadIndex];
 
-        // 如果当前线程被标记为需要唤醒，则重置标志并返回 true
+        // 如果当前线程被标记为需要唤醒，则重置标志（wakeUp设为false）并返回 true（表示重置成功）
         if (caf.getWakeUp()) {
             caf.setWakeUp(false);
             return true;
