@@ -7,7 +7,7 @@ import java.util.Objects;
 
 /* 基于数组实现的哈希表 */
 public class ArrayHashMap {
-    private List<Pair> buckets;
+    private final List<Pair> buckets;
 
     public ArrayHashMap() {
         // 初始化数组，包含 100 个桶
@@ -19,8 +19,7 @@ public class ArrayHashMap {
 
     /* 哈希函数 */
     private int hashFunc(int key) {
-        int index = key % 100;
-        return index;
+        return key % 100;
     }
 
     /* 查询操作 */
