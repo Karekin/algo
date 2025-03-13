@@ -12,18 +12,48 @@ public class LinkedListBinaryTree {
 
     /* 层序遍历 */
     public List<Integer> levelOrder() {
-        List<Integer> result = new ArrayList<>();
-        if (root == null) return result;
-
+        List<Integer> res = new ArrayList<>();
+        if (root == null) {
+            return new ArrayList<>();
+        }
         Queue<TreeNode> queue = new LinkedList<>();
         queue.offer(root);
         while (!queue.isEmpty()) {
             TreeNode node = queue.poll();
-            result.add(node.val);
-            if (node.left != null) queue.offer(node.left);
-            if (node.right != null) queue.offer(node.right);
+            res.add(node.val);
+            if (node.left != null) {
+                queue.offer(node.left);
+            }
+            if (node.right != null) {
+                queue.offer(node.right);
+            }
         }
-        return result;
+        return res;
+    }
+
+    public List<List<Integer>> levelOrderList() {
+        if (root == null) {
+            return new ArrayList<>();
+        }
+        List<List<Integer>> res = new ArrayList<>();
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            List<Integer> levelRes = new ArrayList<>(size);
+            for (int i=0; i<size; i++) {
+                TreeNode node = queue.poll();
+                levelRes.add(node.val);
+                if (node.left != null) {
+                    queue.offer(node.left);
+                }
+                if (node.right != null) {
+                    queue.offer(node.right);
+                }
+            }
+            res.add(levelRes);
+        }
+        return res;
     }
 
     /* 前序遍历 */

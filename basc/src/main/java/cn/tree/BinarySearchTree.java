@@ -164,6 +164,58 @@ public class BinarySearchTree {
         return result;
     }
 
+    // 是否是有效的二叉搜索树（前序遍历卡范围）
+    public boolean isValidBSTPreOrder() {
+        /*
+         * 方法采用递归方式判断每个节点是否在给定范围内：
+         *
+         * return recur(root, Integer.MIN_VALUE, Integer.MAX_VALUE);
+         *
+         * 整体思路正确，但使用 Integer.MIN_VALUE 和 Integer.MAX_VALUE 作为上下界时会出现问题：
+         * 如果树中节点的值恰好等于 Integer.MIN_VALUE 或 Integer.MAX_VALUE，将被错误判定为无效的二叉搜索树。
+         *
+         * 例如，以下二叉树：
+         *
+         *     Integer.MAX_VALUE
+         *        /
+         * Integer.MIN_VALUE
+         *
+         * 按照原有代码逻辑：
+         * - 根节点为 Integer.MAX_VALUE，左节点为 Integer.MIN_VALUE。
+         * - 检测左子树时范围为 (Integer.MIN_VALUE, Integer.MAX_VALUE)，但左节点的值等于下限 Integer.MIN_VALUE，
+         *   导致节点验证失败（val > left 不成立，因 val 等于边界值）。
+         *
+         * 实际上，该树是合法的 BST（左子树节点严格小于根节点，符合 BST 定义）。
+         */
+
+        return recur(root, Long.MIN_VALUE, Long.MAX_VALUE);
+    }
+
+    boolean recur(TreeNode root, long left, long right) {
+        if (root == null) {
+            return true;
+        }
+        int val = root.val;
+        return val > left && val < right && recur(root.left, left, val) && recur(root.right, val, right);
+    }
+
+
+    private long pre = Long.MIN_VALUE;
+    public boolean isValidBSTInOrder(TreeNode root) {
+        if (root == null) {
+            return true;
+        }
+        if (!isValidBSTInOrder(root.left)) {
+            return false;
+        }
+        if (pre >= root.val) {
+            return false;
+        }
+        pre = root.val;
+        return isValidBSTInOrder(root.right);
+    }
+
+
     // 树节点类
     public static class TreeNode {
         public int val;

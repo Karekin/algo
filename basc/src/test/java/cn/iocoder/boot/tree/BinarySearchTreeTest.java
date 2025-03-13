@@ -92,5 +92,10 @@ public class BinarySearchTreeTest {
         assertTrue(emptyTree.inOrder().isEmpty(), "空树的中序遍历应为空");
         assertTrue(emptyTree.postOrder().isEmpty(), "空树的后序遍历应为空");
     }
+
+    @Test
+    public void testValidBST() {
+        assertTrue(bst.isValidBST(), "应当为有效的BST");
+    }
 }
 
